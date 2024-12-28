@@ -1,0 +1,30 @@
+from pyspark.sql import SparkSession
+from delta import *
+
+# Create Spark session with Delta support
+spark = SparkSession.builder \
+    .appName("DeltaLakeExample") \
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+    .getOrCreate()
+
+# Create a DataFrame
+data = spark.range(0, 5)
+data.show()
+
+# Write the DataFrame as a Delta table
+data.write.format("delta").save("/tmp/delta-table")
+
+# Read the Delta table
+delta_table = spark.read.format("delta").load("/tmp/delta-table")
+delta_table.show()
+
+# Update a Delta table (e.g., add a new column)
+from delta.tables import *
+
+delta_table = DeltaTable.forPath(spark, "/tmp/delta-table")
+delta_table.update(expr("id % 2 == 0"), {"id": "id + 100"})
+
+# Read the updated Delta table
+updated_table = spark.read.format("delta").load("/tmp/delta-table")
+updated_table.show()
